@@ -5,8 +5,9 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
-#define APPNAME "GpuData"
+#define APPNAME "gpuload"
 
 #if 0
 static void error_exit(const char *msg)
@@ -20,17 +21,17 @@ static void error_exit(const char *msg)
 
     exit(EXIT_FAILURE);
 }
+#endif
 
 static void usage_exit()
 {
-    printf("*** usage :");
-    printf("%s -m -s <projectname>", APPNAME);
-    printf("%s <projectname>", APPNAME);
+    printf("*** usage :\n");
+    printf("%s\n", APPNAME);
+    printf("%s -gt 20\n", APPNAME);
     printf("abort...\n");
 
     exit(EXIT_FAILURE);
 }
-#endif
 
 int msleep(long msec)
 {
@@ -62,6 +63,29 @@ int main(int argc, char **argv)
 
     setbuf(stdout, NULL);
 
+    int n = 1;
+
+    int opt_gputrigger = -1;
+
+    while (n < argc)
+    {
+        // gpu trigger
+        if (strcmp(argv[n], "-gt") == 0)
+        {
+            if (++n >= argc)
+                usage_exit();
+
+            opt_gputrigger = atoi(argv[n]);
+        }
+
+        else
+        {
+            usage_exit();
+        }
+
+        ++n;
+    }
+
     GpuData gpudata = {0};
     gpudata.show_percentage = true;
 
@@ -75,7 +99,11 @@ int main(int argc, char **argv)
         double cpu = cpuload();
         float gpu = gpuload(&gpudata);
 
-        printf("%f\t%f\n", cpu, gpu);
+        if (opt_gputrigger > -1 && gpu > opt_gputrigger)
+            opt_gputrigger = 0;
+
+        if (gpu >= opt_gputrigger)
+            printf("%f\t%f\n", cpu, gpu);
     }
 
     return EXIT_SUCCESS;
